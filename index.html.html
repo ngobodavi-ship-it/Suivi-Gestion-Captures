@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système Captures Multi-Agents v3.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        /* LOGIN */
+        .login-container {
+            max-width: 500px;
+            margin: 100px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .login-container h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .code-input {
+            width: 100%;
+            padding: 20px;
+            font-size: 24px;
+            text-align: center;
+            border: 3px solid #dee2e6;
+            border-radius: 15px;
+            margin: 20px 0;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .login-btn:hover { transform: translateY(-2px); }
+        .code-hint {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 0.9em;
+            text-align: left;
+        }
+
+        /* INTERFACE PRINCIPALE */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: none;
+        }
+        .header {
+            padding: 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+        .header-agent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .header-super {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .sync-indicator {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sync-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* STATS */
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+            border-radius: 15px;
+            color: white;
+            min-width: 150px;
+        }
+        .stat-box h3 { font-size: 2.5em; margin-bottom: 5px; }
+
+        /* BOUTONS */
+        .section {
+            padding: 30px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* RECHERCHE */
+        .search-section {
+            background: linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%);
+        }
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        .search-results {
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* GALERIE */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+        .capture-card {
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .capture-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .capture-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .agent-badge {
+            background: #e7f3ff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #667eea;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .online-badge {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            padding: 8px 15px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #155724;
+            display: inline-block;
+            margin: 5px;
+            position: relative;
+        }
+        .online-badge::before {
+            content: '●';
+            color: #28a745;
+            margin-right: 5px;
+            animation: blink 2s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* PROGRESS BAR */
+        .progress-container {
+            width: 100%;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            display: none;
+        }
+        .progress-bar {
+            height: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* NOTIFICATION */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #28a745;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 2000;
+        }
+        .notification.error { background: #dc3545; }
+
+        /* MODAL IMAGE */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+        }
+        .modal-close {
+            position: absolute;
+            top: 30px;
+            right: 50px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+        }
+
+        input[type="file"] { display: none; }
+        .no-data {
+            text-align: center;
+            padding: 60px;
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN -->
+    <div class="login-container" id="loginPage">
+        <h1>🔐 Connexion</h1>
+        <p>Système Multi-Agents v3.0</p>
+        <p style="margin-top: 10px; font-size: 0.9em;">80 Agents + 10 Superviseurs</p>
+        <p style="margin-top: 5px; font-size: 0.85em; color: #28a745; font-weight: 600;">✨ IndexedDB - Stockage illimité</p>
+        
+        <input type="text" id="codeInput" class="code-input" placeholder="CODE" maxlength="10">
+        <button class="login-btn" onclick="login()">Se Connecter</button>
+        
+        <div class="code-hint">
+            <p><strong>👤 Codes Agents:</strong> AGENT001 à AGENT080</p>
+            <p><strong>👨‍💼 Codes Superviseurs:</strong> SUPER01 à SUPER10</p>
+        </div>
+    </div>
+
+    <!-- INTERFACE AGENT -->
+    <div class="container" id="agentInterface">
+        <div class="header header-agent">
+            <div class="sync-indicator">
+                <div class="sync-dot"></div>
+                <span>Synchronisé</span>
+            </div>
+            <div class="logout-btn" onclick="logout()">🚪 Déconnexion</div>
+            <h1>📸 Interface Agent</h1>
+            <p id="agentName">Agent</p>
+        </div>
+
+        <div class="section">
+            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()" id="uploadBtn">
+                📂 Ajouter des captures
+            </button>
+            <button class="btn btn-success" onclick="exportAgent()">📊 Exporter Excel</button>
+            <button class="btn btn-danger" onclick="clearMyData()">🗑️ Effacer mes données</button>
+            <input type="file" id="fileInput" multiple accept="image/*" onchange="handleFiles(event)">
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar">0%</div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box" style="background: #667eea;">
+                <h3 id="agentTotal">0</h3>
+                <p>Mes Captures</p>
+            </div>
+            <div class="stat-box" style="background: #11998e;">
+                <h3 id="agentResults">0</h3>
+                <p>Résultats</p>
+            </div>
+        </div>
+
+        <div class="section search-section">
+            <h3>🔍 Rechercher mes captures</h3>
+            <input type="text" id="agentSearch" class="search-input" 
+                   placeholder="Numéro ou nom de fichier..." 
+                   onkeyup="searchAgent()">
+            <div class="search-results" id="agentSearchResults"></div>
+        </div>
+
+        <div class="gallery" id="agentGallery"></div>
+    </div>
+
+    <!-- INTERFACE SUPERVISEUR -->
+    <div class="container" id="superInterface">
+        <div class="header header-super">
+            <div class="sync-indicator">
+                <div class="sync-dot"></div>
+                <span>Synchronisé</span>
+            </div>
+            <div class="logout-btn" onclick="logout()">🚪 Déconnexion</div>
+            <h1>👨‍💼 Superviseur</h1>
+            <p>Vue d'ensemble - Tous les agents</p>
+        </div>
+
+        <div class="section">
+            <button class="btn btn-success" onclick="exportSuper()">📊 Exporter Excel</button>
+            <button class="btn btn-primary" onclick="refreshSuper()">🔄 Rafraîchir</button>
+            <button class="btn btn-danger" onclick="clearAllData()">🗑️ Tout effacer</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box" style="background: #11998e;">
+                <h3 id="superTotal">0</h3>
+                <p>Total Captures</p>
+            </div>
+            <div class="stat-box" style="background: #667eea;">
+                <h3 id="superAgents">0</h3>
+                <p>Agents Actifs</p>
+            </div>
+            <div class="stat-box" style="background: #f093fb;">
+                <h3 id="superResults">0</h3>
+                <p>Résultats</p>
+            </div>
+            <div class="stat-box" style="background: #ff6b6b;">
+                <h3 id="agentsOnline">0</h3>
+                <p>Agents En Ligne</p>
+            </div>
+        </div>
+        
+        <div class="section" style="background: #f8f9fa;">
+            <h3 style="margin-bottom: 15px;">👥 Agents Actifs</h3>
+            <div id="agentsList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+        </div>
+
+        <div class="section search-section">
+            <h3>🔍 Rechercher toutes les captures</h3>
+            <input type="text" id="superSearch" class="search-input" 
+                   placeholder="Numéro, agent, fichier..." 
+                   onkeyup="searchSuper()">
+            <div class="search-results" id="superSearchResults"></div>
+        </div>
+
+        <div class="gallery" id="superGallery"></div>
+    </div>
+
+    <!-- NOTIFICATION -->
+    <div class="notification" id="notif"></div>
+
+    <!-- MODAL IMAGE -->
+    <div class="modal" id="imageModal" onclick="closeModal()">
+        <span class="modal-close">&times;</span>
+        <img id="modalImage" src="">
+    </div>
+
+    <script>
+        // ====== INDEXEDDB CONFIGURATION ======
+        let db;
+        const DB_NAME = 'CapturesDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'captures';
+
+        // Initialiser IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => {
+                    console.error('❌ Erreur IndexedDB');
+                    reject(request.error);
+                };
+                
+                request.onsuccess = () => {
+                    db = request.result;
+                    console.log('✅ IndexedDB initialisée');
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        store.createIndex('agent', 'agent', { unique: false });
+                        store.createIndex('timestamp', 'timestamp', { unique: false });
+                        console.log('✅ Store créé');
+                    }
+                };
+            });
+        }
+
+        // Sauvegarder une capture
+        function saveCapture(capture) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.add(capture);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Sauvegarder plusieurs captures (BATCH)
+        function saveCapturesBatch(captures) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                let completed = 0;
+                captures.forEach(capture => {
+                    const request = store.add(capture);
+                    request.onsuccess = () => {
+                        completed++;
+                        if (completed === captures.length) resolve();
+                    };
+                    request.onerror = () => console.error('Erreur ajout:', request.error);
+                });
+                
+                transaction.onerror = () => reject(transaction.error);
+            });
+        }
+
+        // Charger toutes les captures
+        function loadAllCaptures() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Charger les captures d'un agent
+        function loadAgentCaptures(agentCode) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const index = store.index('agent');
+                const request = index.getAll(agentCode);
+                
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Supprimer les captures d'un agent
+        function deleteAgentCaptures(agentCode) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const captures = await loadAgentCaptures(agentCode);
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    
+                    captures.forEach(c => store.delete(c.id));
+                    
+                    transaction.oncomplete = () => resolve();
+                    transaction.onerror = () => reject(transaction.error);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // Supprimer toutes les captures
+        function clearAllCaptures() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.clear();
+                
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ====== VARIABLES GLOBALES ======
+        let currentUser = null;
+        let userType = null;
+        let myCaptures = [];
+        let allCaptures = [];
+        let filteredAgent = [];
+        let filteredSuper = [];
+        let syncInterval = null;
+
+        // ====== SYNCHRONISATION ======
+        async function syncData() {
+            try {
+                if (userType === 'agent') {
+                    myCaptures = await loadAgentCaptures(currentUser);
+                    myCaptures.sort((a, b) => b.timestamp - a.timestamp);
+                    filteredAgent = myCaptures;
+                    displayAgent();
+                    document.getElementById('agentTotal').textContent = myCaptures.length;
+                    document.getElementById('agentResults').textContent = filteredAgent.length;
+                } else if (userType === 'super') {
+                    allCaptures = await loadAllCaptures();
+                    allCaptures.sort((a, b) => b.timestamp - a.timestamp);
+                    filteredSuper = allCaptures;
+                    displaySuper();
+                    
+                    const agents = new Set(allCaptures.map(c => c.agent));
+                    const onlineAgents = cleanOfflineAgents();
+                    
+                    document.getElementById('superTotal').textContent = allCaptures.length;
+                    document.getElementById('superAgents').textContent = agents.size;
+                    document.getElementById('superResults').textContent = filteredSuper.length;
+                    document.getElementById('agentsOnline').textContent = onlineAgents.length;
+                    
+                    const agentsList = document.getElementById('agentsList');
+                    if (onlineAgents.length > 0) {
+                        agentsList.innerHTML = onlineAgents.map(agent => 
+                            `<div class="online-badge">${agent}</div>`
+                        ).join('');
+                    } else {
+                        agentsList.innerHTML = '<p style="color: #6c757d;">Aucun agent en ligne</p>';
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur sync:', error);
+            }
+        }
+
+        // ====== INITIALISATION ======
+        window.addEventListener('load', async () => {
+            try {
+                await initDB();
+                console.log('✅ Système prêt');
+                
+                // Synchroniser toutes les secondes
+                setInterval(() => {
+                    if (currentUser && userType) {
+                        syncData();
+                    }
+                }, 1000);
+            } catch (error) {
+                console.error('❌ Erreur initialisation:', error);
+                notify('❌ Erreur de base de données', true);
+            }
+        });
+
+        // ====== CONNEXION ======
+        async function login() {
+            const code = document.getElementById('codeInput').value.toUpperCase().trim();
+            
+            if (code.match(/^AGENT(0[0-7][0-9]|080)$/)) {
+                currentUser = code;
+                userType = 'agent';
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('agentInterface').style.display = 'block';
+                document.getElementById('agentName').textContent = code;
+                
+                await syncData();
+                setInterval(updateOnlineStatus, 5000);
+                updateOnlineStatus();
+                
+                notify('✅ Connecté: ' + code);
+            }
+            else if (code.match(/^SUPER(0[1-9]|10)$/)) {
+                currentUser = code;
+                userType = 'super';
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('superInterface').style.display = 'block';
+                
+                await syncData();
+                notify('✅ Connecté: ' + code);
+            }
+            else {
+                notify('❌ Code invalide', true);
+            }
+            
+            document.getElementById('codeInput').value = '';
+        }
+
+        function logout() {
+            if (currentUser) {
+                const onlineAgents = JSON.parse(localStorage.getItem('onlineAgents') || '{}');
+                delete onlineAgents[currentUser];
+                localStorage.setItem('onlineAgents', JSON.stringify(onlineAgents));
+            }
+            
+            currentUser = null;
+            userType = null;
+            document.getElementById('agentInterface').style.display = 'none';
+            document.getElementById('superInterface').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'block';
+            notify('👋 Déconnecté');
+        }
+
+        // ====== COMPRESSION IMAGE ======
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxWidth = 400;
+
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.5));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // ====== UPLOAD FICHIERS ======
+        async function handleFiles(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            
+            uploadBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            
+            notify(`📤 Traitement de ${files.length} fichier(s)...`);
+            
+            let completed = 0;
+            let batchBuffer = [];
+            const batchSize = 10;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith('image/')) continue;
+
+                try {
+                    const base64 = await compressImage(file);
+                    const num = file.name.match(/\d+/)?.[0] || Date.now().toString().slice(-6);
+
+                    const newCapture = {
+                        id: Date.now() + Math.random() + i,
+                        num: num,
+                        agent: currentUser,
+                        file: file.name,
+                        date: new Date().toLocaleString('fr-FR'),
+                        size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+                        image: base64,
+                        timestamp: Date.now() + i
+                    };
+
+                    batchBuffer.push(newCapture);
+                    completed++;
+                    
+                    // Progression
+                    const percent = Math.round((completed / files.length) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.textContent = percent + '%';
+                    
+                    // Sauvegarder par lots
+                    if (batchBuffer.length >= batchSize || i === files.length - 1) {
+                        await saveCapturesBatch(batchBuffer);
+                        console.log(`💾 ${batchBuffer.length} captures sauvegardées`);
+                        await syncData();
+                        batchBuffer = [];
+                    }
+                    
+                } catch (error) {
+                    console.error('Erreur:', error);
+                }
+            }
+
+            progressContainer.style.display = 'none';
+            uploadBtn.disabled = false;
+            notify(`🎉 ${completed} CAPTURES AJOUTÉES!`);
+            event.target.value = '';
+        }
+
+        // ====== AGENT ======
+        function displayAgent() {
+            const gallery = document.getElementById('agentGallery');
+            
+            if (filteredAgent.length === 0) {
+                gallery.innerHTML = '<div class="no-data">Aucune capture</div>';
+                return;
+            }
+
+            gallery.innerHTML = filteredAgent.map(c => `
+                <div class="capture-card">
+                    <img src="${c.image}" alt="${c.file}" onclick="openModal('${c.image}')">
+                    <strong style="color: #667eea;">N° ${c.num}</strong>
+                    <p style="font-size: 0.85em; margin: 5px 0;">${c.file}</p>
+                    <p style="font-size: 0.75em; color: #999;">${c.date}</p>
+                    <p style="font-size: 0.75em; color: #999;">${c.size}</p>
+                </div>
+            `).join('');
+        }
+
+        function searchAgent() {
+            const search = document.getElementById('agentSearch').value.toLowerCase();
+            const resultsDiv = document.getElementById('agentSearchResults');
+            
+            if (search === '') {
+                filteredAgent = myCaptures;
+                resultsDiv.innerHTML = '';
+            } else {
+                filteredAgent = myCaptures.filter(c => 
+                    c.num.includes(search) || c.file.toLowerCase().includes(search)
+                );
+                resultsDiv.innerHTML = filteredAgent.length === 0 
+                    ? '<span style="color: #dc3545;">❌ Aucun résultat</span>'
+                    : `<span style="color: #28a745;">✅ ${filteredAgent.length} résultat(s)</span>`;
+            }
+            
+            document.getElementById('agentResults').textContent = filteredAgent.length;
+            displayAgent();
+        }
+
+        async function clearMyData() {
+            if (!confirm('⚠️ Supprimer toutes vos captures ?')) return;
+            
+            try {
+                await deleteAgentCaptures(currentUser);
+                await syncData();
+                notify('✅ Données supprimées');
+            } catch (error) {
+                console.error('Erreur:', error);
+                notify('❌ Erreur suppression', true);
+            }
+        }
+
+        async function exportAgent() {
+            const data = filteredAgent.length > 0 ? filteredAgent : myCaptures;
+            if (data.length === 0) {
+                notify('⚠️ Aucune capture', true);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Mes Captures');
+            
+            sheet.columns = [
+                { header: 'Numéro', key: 'num', width: 15 },
+                { header: 'Fichier', key: 'file', width: 35 },
+                { header: 'Date', key: 'date', width: 20 },
+                { header: 'Taille', key: 'size', width: 15 }
+            ];
+            
+            data.forEach(c => sheet.addRow(c));
+            
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer]);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentUser}_${data.length}_captures.xlsx`;
+            a.click();
+            
+            notify('✅ Export réussi');
+        }
+
+        // ====== SUPERVISEUR ======
+        function displaySuper() {
+            const gallery = document.getElementById('superGallery');
+            
+            if (filteredSuper.length === 0) {
+                gallery.innerHTML = '<div class="no-data">Aucune capture</div>';
+                return;
+            }
+
+            gallery.innerHTML = filteredSuper.map(c => `
+                <div class="capture-card">
+                    <img src="${c.image}" alt="${c.file}" onclick="openModal('${c.image}')">
+                    <div class="agent-badge">👤 ${c.agent}</div>
+                    <p style="margin: 5px 0;"><strong style="color: #667eea;">N° ${c.num}</strong></p>
+                    <p style="font-size: 0.85em; margin: 5px 0;">${c.file}</p>
+                    <p style="font-size: 0.75em; color: #999;">${c.date}</p>
+                    <p style="font-size: 0.75em; color: #999;">${c.size}</p>
+                </div>
+            `).join('');
+        }
+
+        function searchSuper() {
+            const search = document.getElementById('superSearch').value.toLowerCase();
+            const resultsDiv = document.getElementById('superSearchResults');
+            
+            if (search === '') {
+                filteredSuper = [...allCaptures];
+                resultsDiv.innerHTML = '';
+            } else {
+                filteredSuper = allCaptures.filter(c => 
+                    c.num.includes(search) || 
+                    c.agent.toLowerCase().includes(search) ||
+                    c.file.toLowerCase().includes(search)
+                );
+                
+                resultsDiv.innerHTML = filteredSuper.length === 0 
+                    ? '<span style="color: #dc3545;">❌ Aucun résultat</span>'
+                    : `<span style="color: #28a745;">✅ ${filteredSuper.length} résultat(s)</span>`;
+            }
+            
+            document.getElementById('superResults').textContent = filteredSuper.length;
+            displaySuper();
+        }
+
+        async function refreshSuper() {
+            await syncData();
+            notify('🔄 Données rechargées');
+        }
+
+        async function clearAllData() {
+            if (!confirm('⚠️ SUPPRIMER TOUTES LES CAPTURES ?')) return;
+            
+            try {
+                await clearAllCaptures();
+                await syncData();
+                notify('✅ Toutes les données supprimées');
+            } catch (error) {
+                console.error('Erreur:', error);
+                notify('❌ Erreur suppression', true);
+            }
+        }
+
+        async function exportSuper() {
+            const data = filteredSuper.length > 0 ? filteredSuper : allCaptures;
+            if (data.length === 0) {
+                notify('⚠️ Aucune capture', true);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Supervision');
+            
+            sheet.columns = [
+                { header: 'Numéro', key: 'num', width: 15 },
+                { header: 'Agent', key: 'agent', width: 20 },
+                { header: 'Fichier', key: 'file', width: 35 },
+                { header: 'Date', key: 'date', width: 20 },
+                { header: 'Taille', key: 'size', width: 15 }
+            ];
+            
+            data.forEach(c => sheet.addRow(c));
+            
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer]);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `supervision_${data.length}_captures.xlsx`;
+            a.click();
+            
+            notify('✅ Export réussi');
+        }
+
+        // ====== STATUT EN LIGNE ======
+        function updateOnlineStatus() {
+            if (!currentUser) return;
+            const onlineAgents = JSON.parse(localStorage.getItem('onlineAgents') || '{}');
+            onlineAgents[currentUser] = Date.now();
+            localStorage.setItem('onlineAgents', JSON.stringify(onlineAgents));
+        }
+        
+        function cleanOfflineAgents() {
+            const onlineAgents = JSON.parse(localStorage.getItem('onlineAgents') || '{}');
+            const now = Date.now();
+            const timeout = 15000;
+            
+            Object.keys(onlineAgents).forEach(agent => {
+                if (now - onlineAgents[agent] > timeout) {
+                    delete onlineAgents[agent];
+                }
+            });
+            
+            localStorage.setItem('onlineAgents', JSON.stringify(onlineAgents));
+            return Object.keys(onlineAgents);
+        }
+
+        // ====== MODAL ======
+        function openModal(imageSrc) {
+            document.getElementById('modalImage').src = imageSrc;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        // ====== NOTIFICATION ======
+        function notify(msg, isError = false) {
+            const n = document.getElementById('notif');
+            n.textContent = msg;
+            n.className = 'notification' + (isError ? ' error' : '');
+            n.style.display = 'block';
+            setTimeout(() => n.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>
